@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"github.com/yudhabhakti95/belajargolang/config/db"
-	"github.com/yudhabhakti95/belajargolang/model"
+	"github.com/YudhaBhakti95/belajargolang/config/db"
+	"github.com/YudhaBhakti95/belajargolang/model"
 	"context"
 	"encoding/json"
 	"fmt"

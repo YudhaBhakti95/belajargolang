@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/yudhabhakti95/belajargolang/model"
-	"github.com/yudhabhakti95/belajargolang/controller"
+	"github.com/YudhaBhakti95/belajargolang/model"
+	"github.com/YudhaBhakti95/belajargolang/controller"
 	"log"
 	"net/http"
 	"github.com/gorilla/mux"
