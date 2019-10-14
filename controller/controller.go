@@ -14,7 +14,8 @@ import (
 	"github.com/YudhaBhakti95/belajargolang/model"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,16 +28,15 @@ func checkPassStrength(pass string) bool {
 	return passwordLength && containsUppercase && containsLowerCase && containsNumber
 }
 
-func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
+func RegisterHandler(c *gin.Context) {
 	var user model.User
-	body, _ := ioutil.ReadAll(r.Body)
+	body, _ := ioutil.ReadAll(c.Request.Body)
 	err := json.Unmarshal(body, &user)
 	var res model.ResponseResult
+
 	if err != nil {
 		res.Error = err.Error()
-		json.NewEncoder(w).Encode(res)
+		c.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
@@ -44,7 +44,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		res.Error = err.Error()
-		json.NewEncoder(w).Encode(res)
+		c.JSON(http.StatusInternalServerError, res)
 		return
 	}
 	var result model.User
@@ -55,14 +55,14 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 			if !checkPassStrength(user.Password) {
 				res.Error = "Error Not Strong Password"
-				json.NewEncoder(w).Encode(res)
+				c.JSON(http.StatusBadRequest, res)
 				return
 			}
 
 			hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 5)
 			if err != nil {
 				res.Error = "Error While Hashing Password, Try Again"
-				json.NewEncoder(w).Encode(res)
+				c.JSON(http.StatusInternalServerError, res)
 				return
 			}
 			user.Password = string(hash)
@@ -70,29 +70,25 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			_, err = collection.InsertOne(context.TODO(), user)
 			if err != nil {
 				res.Error = "Error While Creating User, Try Again"
-				json.NewEncoder(w).Encode(res)
+				c.JSON(http.StatusInternalServerError, res)
 				return
 			}
 			res.Result = "Registration Successful"
-			json.NewEncoder(w).Encode(res)
+			c.JSON(http.StatusOK, res)
 			return
 		}
-
 		res.Error = err.Error()
-		json.NewEncoder(w).Encode(res)
+		c.JSON(http.StatusInternalServerError, res)
 		return
 	}
-
 	res.Result = "Username already Exists!!"
-	json.NewEncoder(w).Encode(res)
+	c.JSON(http.StatusInternalServerError, res)
 	return
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
+func LoginHandler(c *gin.Context) {
 	var user model.User
-	body, _ := ioutil.ReadAll(r.Body)
+	body, _ := ioutil.ReadAll(c.Request.Body)
 	err := json.Unmarshal(body, &user)
 	if err != nil {
 		log.Fatal(err)
@@ -108,9 +104,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = collection.FindOne(context.TODO(), bson.D{{"username", user.Username}}).Decode(&result)
 
+	fmt.Println(body)
+
 	if err != nil {
 		res.Error = "Invalid username"
-		json.NewEncoder(w).Encode(res)
+		c.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
@@ -118,7 +116,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		res.Error = "Invalid password"
-		json.NewEncoder(w).Encode(res)
+		c.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
@@ -132,42 +130,48 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		res.Error = "Error while generating token,Try again"
-		json.NewEncoder(w).Encode(res)
+		c.JSON(http.StatusInternalServerError, res)
 		return
 	}
 
 	result.Token = tokenString
 	result.Password = ""
 
-	json.NewEncoder(w).Encode(result)
-
+	c.JSON(http.StatusOK, result)
 }
 
-func ProfileHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	reqToken := r.Header.Get("Authorization")
-	splitToken := strings.Split(reqToken, "Bearer ")
-	reqToken = splitToken[1]
+func ProfileHandler(c *gin.Context) {
+	var result model.User
+	var res model.ResponseResult
+	reqToken := c.Request.Header.Get("Authorization")
+
+	if !strings.Contains(reqToken, "Bearer") {
+		res.Error = "Invalid Token"
+		c.JSON(http.StatusBadRequest, res)
+		return
+	}
+	reqToken = strings.Replace(reqToken, "Bearer ", "", -1)
 	token, err := jwt.Parse(reqToken, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method")
 		}
 		return []byte("secret"), nil
 	})
-	var result model.User
-	var res model.ResponseResult
+
+	if err != nil {
+		res.Error = err.Error()
+		c.JSON(http.StatusBadRequest, res)
+		return
+	}
+
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		result.Username = claims["username"].(string)
 		result.FirstName = claims["firstname"].(string)
 		result.LastName = claims["lastname"].(string)
-
-		json.NewEncoder(w).Encode(result)
-		return
-	} else {
-		res.Error = err.Error()
-		json.NewEncoder(w).Encode(res)
+		c.JSON(http.StatusOK, result)
 		return
 	}
+	res.Error = err.Error()
+	c.JSON(http.StatusBadRequest, res)
 
 }

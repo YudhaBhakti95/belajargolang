@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,8 +23,6 @@ func GetDBCollection() (*mongo.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("Connected to MongoDB!")
 	collection := client.Database("go-login").Collection("users")
 	return collection, nil
 }
