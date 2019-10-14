@@ -2,20 +2,30 @@ package db
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func getdbcollection() (*mongo.Collection, error) {
-	client, err := mongo.Connect(context.TODO(), "mongodb://localhost:27017")
+func GetDBCollection() (*mongo.Collection, error) {
+	// Set client options
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+
+	// Connect to MongoDB
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+
 	if err != nil {
 		return nil, err
 	}
+
 	// Check the connection
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
 		return nil, err
 	}
-	collection := client.Database("GoLogin").Collection("users")
+
+	fmt.Println("Connected to MongoDB!")
+	collection := client.Database("go-login").Collection("users")
 	return collection, nil
 }

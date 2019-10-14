@@ -1,6 +1,6 @@
 package model
 
-type user struct {
+type User struct {
 	Username  string `json:"username"`
 	FirstName string `json:"firstname"`
 	LastName  string `json:"lastname"`
@@ -8,7 +8,7 @@ type user struct {
 	Token     string `json:"token"`
 }
 
-type responseresult struct {
+type ResponseResult struct {
 	Error  string `json:"error"`
 	Result string `json:"result"`
 }
